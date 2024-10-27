@@ -1,6 +1,8 @@
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
+    kotlin("kapt")
+    id ("realm-android")
 }
 
 android {
@@ -11,7 +13,7 @@ android {
         applicationId = "com.ipr.stepikapp"
         minSdk = 21
         //noinspection ExpiredTargetSdkVersion
-        targetSdk = 22
+        targetSdk = 34
         versionCode = 1
         versionName = "1.0"
 
@@ -48,6 +50,7 @@ android {
             excludes += "/META-INF/{AL2.0,LGPL2.1}"
         }
     }
+    buildToolsVersion = "34.0.0"
 }
 
 dependencies {

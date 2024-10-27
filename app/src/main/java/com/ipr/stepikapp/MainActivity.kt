@@ -1,6 +1,7 @@
 package com.ipr.stepikapp
 
 import android.content.Intent
+import android.content.res.Configuration
 import android.net.Uri
 import android.os.Bundle
 import android.util.Log
@@ -8,17 +9,11 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.BaseAdapter
-import android.widget.Button
 import android.widget.ImageView
-import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
 import androidx.activity.ComponentActivity
-import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
@@ -29,12 +24,16 @@ import com.squareup.picasso.Picasso
 import io.reactivex.android.schedulers.AndroidSchedulers
 import io.reactivex.disposables.Disposable
 import io.reactivex.schedulers.Schedulers
+import io.realm.Realm
+import io.realm.RealmList
+import io.realm.RealmObject
 
 class MainActivity : ComponentActivity() {
     val url =
         "https://api.rss2json.com/v1/api.json?rss_url=http%3A%2F%2Ffeeds.bbci.co.uk%2Fnews%2Frss.xml"
     lateinit var vList: ListView
     var request: Disposable? = null
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -43,21 +42,50 @@ class MainActivity : ComponentActivity() {
         vList = findViewById<ListView>(R.id.main_listView)
 
         val o = createRequest(url)
-            .map { Gson().fromJson(it, Feed::class.java) }
+            .map { Gson().fromJson(it, FeedAPI::class.java) }
             .subscribeOn(Schedulers.io())
             .observeOn(AndroidSchedulers.mainThread())
 
         request = o.subscribe({
-            showListView(it.items)
+            val feed = Feed(it.items.mapTo(RealmList<FeedItem>()) { feed ->
+                FeedItem(feed.title, feed.link, feed.thumbnail, feed.description)
+            })
+
+            Realm.getDefaultInstance().executeTransaction { realm ->
+                val oldList = realm.where(Feed::class.java).findAll()
+                if (!oldList.isEmpty()) {
+                    for (item in oldList) {
+                        item.deleteFromRealm()
+                    }
+                }
+
+                realm.copyToRealm(feed)
+
+            }
+
+            showListView()
         }, {
             Log.e("news", "", it)
+            showListView()
         })
 
     }
 
-    private fun showListView(feedList: ArrayList<FeedItem>) {
-        vList.adapter = Adapter(feedList)
+    private fun showListView() {
+        Realm.getDefaultInstance().executeTransaction { realm ->
+            val feeds = realm.where(Feed::class.java).findAll()
+            if (!feeds.isEmpty()) {
+                vList.adapter = Adapter(feeds[0]!!.items)
+            }
+        }
+    }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
     }
 
     override fun onStart() {
@@ -98,24 +126,35 @@ fun GreetingPreview() {
     }
 }
 
-data class Feed(
+data class FeedAPI(
     val items: ArrayList<FeedItem>
 )
 
-data class FeedItem(
+data class FeedItemAPI(
     val title: String,
     val link: String,
     val thumbnail: String,
     val description: String
 )
 
-class Adapter(val items: ArrayList<FeedItem>) : BaseAdapter() {
+open class Feed(
+    var items: RealmList<FeedItem> = RealmList()
+) : RealmObject()
+
+open class FeedItem(
+    var title: String = "",
+    var link: String = "",
+    var thumbnail: String = "",
+    var description: String = ""
+) : RealmObject()
+
+class Adapter(val items: RealmList<FeedItem>) : BaseAdapter() {
     override fun getCount(): Int {
         return items.size
     }
 
     override fun getItem(position: Int): Any {
-        return items[position]
+        return items[position]!!
     }
 
     override fun getItemId(position: Int): Long {
