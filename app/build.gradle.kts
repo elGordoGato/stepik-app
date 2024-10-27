@@ -5,11 +5,11 @@ plugins {
 
 android {
     namespace = "com.ipr.stepikapp"
-    compileSdk = 26
+    compileSdk = 34
 
     defaultConfig {
         applicationId = "com.ipr.stepikapp"
-        minSdk = 16
+        minSdk = 21
         //noinspection ExpiredTargetSdkVersion
         targetSdk = 22
         versionCode = 1
@@ -51,7 +51,6 @@ android {
 }
 
 dependencies {
-
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -67,4 +66,10 @@ dependencies {
     androidTestImplementation(libs.androidx.ui.test.junit4)
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
+
+    // Added RxJava, RxAndroid, and RxKotlin dependencies
+    implementation(libs.reactivex.rxjava)
+    implementation(libs.rxjava2.rxandroid)
+    implementation(libs.rxkotlin)
+    implementation (libs.gson)
 }
