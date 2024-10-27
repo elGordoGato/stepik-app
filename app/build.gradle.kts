@@ -72,4 +72,5 @@ dependencies {
     implementation(libs.rxjava2.rxandroid)
     implementation(libs.rxkotlin)
     implementation (libs.gson)
+    implementation(libs.picasso)
 }
